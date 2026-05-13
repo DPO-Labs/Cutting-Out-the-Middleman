@@ -5,13 +5,6 @@ Improving NLP Tasks Using Transformer-Based Models
 
 ---
 
-# Team Members
-- Mohamed Abdelhady
-- Student 2
-- Student 3
-
----
-
 # Overview
 
 This project focuses on solving and improving three important Natural Language Processing (NLP) tasks using Transformer-based deep learning models.
