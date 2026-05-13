@@ -71,25 +71,35 @@ def get_token_log_probs(
     # Shape: (batch_size, sequence_length, vocab_size)
     log_probs = F.log_softmax(logits, dim=-1)
     
-    # Gather log probabilities at positions specified by labels
-    # We need to handle the batch and sequence dimensions properly
+    # Gather log probabilities at positions specified by labels.
+    # Padding labels such as -100 are not valid gather indices, so replace them
+    # with a safe index first and then zero out those positions after gathering.
     batch_size, seq_length = labels.shape
-    
+
     # Reshape for gathering: (batch_size * seq_length, vocab_size)
     log_probs_flat = log_probs.reshape(-1, log_probs.size(-1))
-    
+
     # Flatten labels: (batch_size * seq_length,)
     labels_flat = labels.reshape(-1)
-    
+
+    # Replace padding labels with a valid index before gather.
+    # These positions will be masked out immediately after gathering.
+    safe_labels_flat = labels_flat.clone()
+    safe_labels_flat[safe_labels_flat == padding_token_id] = 0
+
     # Gather: for each position, get the log prob of the specified token
     # torch.gather is a highly optimized operation for this task
     # Result shape: (batch_size * seq_length,)
-    gathered_log_probs = torch.gather(log_probs_flat, dim=1, index=labels_flat.unsqueeze(1)).squeeze(1)
-    
+    gathered_log_probs = torch.gather(
+        log_probs_flat,
+        dim=1,
+        index=safe_labels_flat.unsqueeze(1)
+    ).squeeze(1)
+
     # Reshape back to original dimensions
     # Shape: (batch_size, sequence_length)
     gathered_log_probs = gathered_log_probs.reshape(batch_size, seq_length)
-    
+
     # Zero out log probabilities for padding tokens
     # This ensures padding positions don't contribute to the loss
     mask = (labels != padding_token_id).float()
