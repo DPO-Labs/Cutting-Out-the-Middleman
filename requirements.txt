@@ -5,4 +5,4 @@ accelerate
 scikit-learn
 tqdm
 pandas
-numpy
+numpypython3 -m venv venv

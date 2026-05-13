@@ -3,18 +3,35 @@ __pycache__/
 *.py[cod]
 *$py.class
 venv/
+.venv/
+.python-version
 .env
+.env.*
+
+# --- Python Tooling ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
 
 # Data & Models
 data/
 datasets/
 checkpoints/
 outputs/
+mlruns/
+wandb/
 *.pt
 *.bin
 *.h5
 *.pth
 *.ckpt
+*.safetensors
 *.aux
 *.log
 *.toc
@@ -28,6 +45,9 @@ report/main.pdf
 
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints/
+
+# --- Local notebook outputs ---
+*.nbconvert.ipynb
 
 # --- IDEs & System ---
 .vscode/
