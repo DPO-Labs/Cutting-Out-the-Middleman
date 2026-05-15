@@ -33,7 +33,8 @@ class GPT2Wrapper:
     def __init__(
         self,
         model_name: str = 'gpt2',
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        local_files_only: Optional[bool] = None,
     ):
         """
         Initialize the GPT-2 wrapper.
@@ -61,6 +62,7 @@ class GPT2Wrapper:
             )
         
         self.model_name = model_name
+        self.local_files_only = local_files_only
         
         # Auto-select device if not specified
         if device is None:
@@ -69,7 +71,10 @@ class GPT2Wrapper:
         
         # Load the model from Hugging Face
         try:
-            self.model = AutoModelForCausalLM.from_pretrained(model_name)
+            from_pretrained_kwargs = {}
+            if self.local_files_only is not None:
+                from_pretrained_kwargs['local_files_only'] = self.local_files_only
+            self.model = AutoModelForCausalLM.from_pretrained(model_name, **from_pretrained_kwargs)
             self.model.to(self.device)
         except Exception as e:
             raise RuntimeError(
