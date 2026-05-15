@@ -4,7 +4,7 @@ This project contains a small NLP training stack for GPT-2. It includes supervis
 
 ## Paraphrase training for QQP
 
-Use `/home/runner/work/Cutting-Out-the-Middleman/Cutting-Out-the-Middleman/src/run_paraphrase.py` for the paraphrase-only workflow.
+Use `src/run_paraphrase.py` for the paraphrase-only workflow.
 
 ### Install
 

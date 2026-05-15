@@ -699,7 +699,7 @@ def main():
             avg_loss = sum(epoch_losses) / len(epoch_losses)
             print(f"SFT Epoch {epoch + 1}/{config.sft_epochs} | Loss: {avg_loss:.4f} | Dev Acc: {dev_acc:.4f}")
 
-            if dev_acc >= best_sft_accuracy:
+            if dev_acc > best_sft_accuracy:
                 best_sft_accuracy = dev_acc
                 best_sft_state = copy.deepcopy(policy_model.model.state_dict())
                 save_state(
@@ -768,7 +768,7 @@ def main():
         avg_margin = sum(epoch_margins) / len(epoch_margins)
         print(f"DPO Epoch {epoch + 1}/{config.dpo_epochs} | Loss: {avg_loss:.4f} | Margin: {avg_margin:.4f} | Dev Acc: {dev_acc:.4f}")
 
-        if dev_acc >= best_dpo_accuracy:
+        if dev_acc > best_dpo_accuracy:
             best_dpo_accuracy = dev_acc
             best_dpo_state = copy.deepcopy(policy_model.model.state_dict())
             save_state(
