@@ -32,6 +32,7 @@ class Trainer:
         policy_model: The model being trained (requires_grad=True)
         ref_model: Frozen reference model for DPO (requires_grad=False)
         optimizer: AdamW optimizer for updating policy model parameters
+        scaler: GradScaler for fp16 mixed precision on CUDA
         device: Device on which training occurs ('cuda' or 'cpu')
         mode: Training mode ('sft' or 'dpo')
         train_losses: List to track losses during training
@@ -94,8 +95,11 @@ class Trainer:
         self.optimizer = AdamW(
             self.policy_model.model.parameters(),
             lr=learning_rate,
-            weight_decay=0.01  # L2 regularization
+            weight_decay=0.0  # no weight decay for paraphrase SFT (per report)
         )
+        
+        # GradScaler for mixed precision on CUDA
+        self.scaler = torch.cuda.amp.GradScaler(enabled=(device == 'cuda'))
         
         # Training metrics tracking
         self.train_losses = []
@@ -158,7 +162,8 @@ class Trainer:
         
         # Get logits from policy model
         # Shape: (batch_size, sequence_length, vocab_size)
-        logits = self.policy_model(input_ids, attention_mask)
+        with torch.amp.autocast(device_type=self.device, enabled=(self.device == 'cuda')):
+            logits = self.policy_model(input_ids, attention_mask)
         
         # ====================================================================
         # Compute cross-entropy loss

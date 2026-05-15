@@ -23,88 +23,26 @@ from typing import Tuple, Optional
 def get_token_log_probs(
     logits: torch.Tensor,
     labels: torch.Tensor,
-    padding_token_id: int = -100
+    padding_token_id: int = -100,
+    log_probs: torch.Tensor = None
 ) -> torch.Tensor:
     """
     Extract the log probabilities of specific tokens from full vocabulary logits.
-    
-    This utility function converts vocabulary-level logits to log probabilities
-    and extracts only the log probabilities for the specified label tokens.
-    Padding tokens (typically marked with -100) are ignored during computation.
-    
-    Args:
-        logits (torch.Tensor): Raw logits from the model of shape
-            (batch_size, sequence_length, vocab_size).
-            Each value is the model's raw output score for each token in the vocab.
-        
-        labels (torch.Tensor): Token IDs indicating which tokens we want log probs for.
-            Shape: (batch_size, sequence_length).
-            Values should be token IDs in range [0, vocab_size).
-            Use padding_token_id (default -100) to mark tokens to ignore.
-        
-        padding_token_id (int): Token ID used to mark padding positions.
-            Positions with this label will be set to log_prob = 0 (no loss).
-            Default: -100 (standard PyTorch convention)
-    
-    Returns:
-        torch.Tensor: Log probabilities of the specified tokens.
-            Shape: (batch_size, sequence_length).
-            For padding positions, returns 0.0 (no contribution to loss).
-    
-    Mathematical Details:
-        - Convert logits to log probabilities using log_softmax
-        - Gather log probs at positions specified by labels
-        - Zero out contributions from padding tokens
-    
-    Example:
-        >>> logits = torch.randn(2, 5, 50257)  # batch, seq_len, vocab
-        >>> labels = torch.tensor([[10, 20, 30, -100, -100],
-        ...                         [15, 25, 35, 45, -100]])
-        >>> log_probs = get_token_log_probs(logits, labels)
-        >>> print(log_probs.shape)  # (2, 5)
-    
-    Note:
-        This function is highly optimized using torch.gather for efficiency.
     """
-    # Convert logits to log probabilities using log-softmax
-    # Numerical stability: log_softmax handles large values gracefully
-    # Shape: (batch_size, sequence_length, vocab_size)
-    log_probs = F.log_softmax(logits, dim=-1)
-    
-    # Gather log probabilities at positions specified by labels.
-    # Padding labels such as -100 are not valid gather indices, so replace them
-    # with a safe index first and then zero out those positions after gathering.
+    if log_probs is None:
+        log_probs = F.log_softmax(logits, dim=-1)
+
     batch_size, seq_length = labels.shape
-
-    # Reshape for gathering: (batch_size * seq_length, vocab_size)
     log_probs_flat = log_probs.reshape(-1, log_probs.size(-1))
-
-    # Flatten labels: (batch_size * seq_length,)
     labels_flat = labels.reshape(-1)
-
-    # Replace padding labels with a valid index before gather.
-    # These positions will be masked out immediately after gathering.
     safe_labels_flat = labels_flat.clone()
     safe_labels_flat[safe_labels_flat == padding_token_id] = 0
-
-    # Gather: for each position, get the log prob of the specified token
-    # torch.gather is a highly optimized operation for this task
-    # Result shape: (batch_size * seq_length,)
     gathered_log_probs = torch.gather(
-        log_probs_flat,
-        dim=1,
-        index=safe_labels_flat.unsqueeze(1)
+        log_probs_flat, dim=1, index=safe_labels_flat.unsqueeze(1)
     ).squeeze(1)
-
-    # Reshape back to original dimensions
-    # Shape: (batch_size, sequence_length)
     gathered_log_probs = gathered_log_probs.reshape(batch_size, seq_length)
-
-    # Zero out log probabilities for padding tokens
-    # This ensures padding positions don't contribute to the loss
     mask = (labels != padding_token_id).float()
     gathered_log_probs = gathered_log_probs * mask
-    
     return gathered_log_probs
 
 
@@ -204,23 +142,27 @@ def compute_dpo_loss(
     # ========================================================================
     # Step 1: Extract log probabilities for winner and loser tokens
     # ========================================================================
-    
+
+    # Precompute log_softmax ONCE per model (saves 2 redundant full-vocab softmaxes)
+    policy_log_probs = F.log_softmax(policy_logits, dim=-1)
+    ref_log_probs    = F.log_softmax(ref_logits, dim=-1)
+
     # Get log probabilities of winner tokens from both models
     # Shape: (batch_size, sequence_length)
     policy_log_prob_winner = get_token_log_probs(
-        policy_logits, winner_labels, padding_token_id
+        None, winner_labels, padding_token_id, log_probs=policy_log_probs
     )
     ref_log_prob_winner = get_token_log_probs(
-        ref_logits, winner_labels, padding_token_id
+        None, winner_labels, padding_token_id, log_probs=ref_log_probs
     )
-    
+
     # Get log probabilities of loser tokens from both models
     # Shape: (batch_size, sequence_length)
     policy_log_prob_loser = get_token_log_probs(
-        policy_logits, loser_labels, padding_token_id
+        None, loser_labels, padding_token_id, log_probs=policy_log_probs
     )
     ref_log_prob_loser = get_token_log_probs(
-        ref_logits, loser_labels, padding_token_id
+        None, loser_labels, padding_token_id, log_probs=ref_log_probs
     )
     
     # ========================================================================
