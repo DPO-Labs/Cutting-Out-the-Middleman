@@ -5,4 +5,12 @@ accelerate
 scikit-learn
 tqdm
 pandas
-numpypython3 -m venv venv
+numpy
+notebook
+matplotlib
+seaborn
+pyarrow
+huggingface-hub
+fsspec
+ipykernel
+sentencepiece

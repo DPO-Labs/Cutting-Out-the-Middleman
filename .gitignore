@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 venv/
 .venv/
+.venv-*/
 .python-version
 .env
 .env.*
@@ -24,6 +25,9 @@ data/
 datasets/
 checkpoints/
 outputs/
+results/
+src/results/
+logs/
 mlruns/
 wandb/
 *.pt

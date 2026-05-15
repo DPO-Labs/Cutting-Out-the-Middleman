@@ -16,3 +16,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 jupyter notebook example_usage.ipynb
 ```
+## fish
+
+```fish
+source venv/bin/activate.fish
+python -m pip install -r requirements.txt
+jupyter notebook example_usage.ipynb
+```
