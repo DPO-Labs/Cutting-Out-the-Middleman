@@ -128,7 +128,12 @@ def build_config() -> Config:
     default_ckpt_dir = str(Path(project_root) / "checkpoints" / f"paraphrase_{profile}")
 
     subset_raw = os.getenv("TRAIN_SUBSET")
-    train_subset = selected["train_subset"] if subset_raw is None else (None if subset_raw.lower() == "none" else int(subset_raw))
+    if subset_raw is None:
+        train_subset = selected["train_subset"]
+    elif subset_raw.lower() == "none":
+        train_subset = None
+    else:
+        train_subset = int(subset_raw)
 
     return Config(
         profile=profile,
@@ -634,30 +639,23 @@ def main():
     start_sft_epoch = 0
     start_dpo_epoch = 0
     resume_stage = "sft"
+    resume_dpo_state = None
 
     sft_last_path = checkpoint_dir / "sft_last.pt"
     dpo_last_path = checkpoint_dir / "dpo_last.pt"
 
     if env_bool("RESUME", False):
         if dpo_last_path.exists():
-            state = load_state(dpo_last_path)
-            policy_model.model.load_state_dict(state["policy_state_dict"])
+            resume_dpo_state = load_state(dpo_last_path)
+            policy_model.model.load_state_dict(resume_dpo_state["policy_state_dict"])
             apply_low_vram_tuning(policy_model, config)
-            sft_optimizer = AdamW(trainable_parameters(policy_model.model), lr=config.sft_lr, weight_decay=0.0)
-            dpo_optimizer = AdamW(trainable_parameters(policy_model.model), lr=config.dpo_lr, weight_decay=0.0)
-            dpo_optimizer.load_state_dict(state["optimizer_state_dict"])
-            dpo_scaler = torch.cuda.amp.GradScaler(enabled=(config.device == "cuda"))
-            dpo_scaler.load_state_dict(state["scaler_state_dict"])
-            ref_model = policy_model.get_reference_model()
-            ref_model.model.load_state_dict(state["reference_state_dict"])
-            ref_model.eval()
-            best_sft_accuracy = state["best_sft_accuracy"]
-            best_sft_state = state["best_sft_state_dict"]
-            best_dpo_accuracy = state["best_dpo_accuracy"]
-            best_dpo_state = state["best_dpo_state_dict"]
-            sft_dev_accuracies = state.get("sft_dev_accuracies", [])
-            dpo_dev_accuracies = state.get("dpo_dev_accuracies", [])
-            start_dpo_epoch = state["epoch_index"] + 1
+            best_sft_accuracy = resume_dpo_state["best_sft_accuracy"]
+            best_sft_state = resume_dpo_state["best_sft_state_dict"]
+            best_dpo_accuracy = resume_dpo_state["best_dpo_accuracy"]
+            best_dpo_state = resume_dpo_state["best_dpo_state_dict"]
+            sft_dev_accuracies = resume_dpo_state.get("sft_dev_accuracies", [])
+            dpo_dev_accuracies = resume_dpo_state.get("dpo_dev_accuracies", [])
+            start_dpo_epoch = resume_dpo_state["epoch_index"] + 1
             resume_stage = "dpo"
             print(f"Resuming DPO from epoch {start_dpo_epoch + 1}")
         elif sft_last_path.exists():
@@ -720,11 +718,14 @@ def main():
             )
 
     if best_sft_state is None:
+        if not (checkpoint_dir / "sft_best.pt").exists():
+            raise FileNotFoundError("Missing SFT checkpoint. Run SFT first or resume from an existing SFT checkpoint.")
         best_state = load_state(checkpoint_dir / "sft_best.pt")
         best_sft_accuracy = best_state["best_sft_accuracy"]
         best_sft_state = best_state["best_sft_state_dict"]
 
-    policy_model.model.load_state_dict(best_sft_state)
+    if resume_stage != "dpo":
+        policy_model.model.load_state_dict(best_sft_state)
     if config.device == "cuda":
         torch.cuda.empty_cache()
 
@@ -733,12 +734,11 @@ def main():
     dpo_optimizer = AdamW(trainable_parameters(policy_model.model), lr=config.dpo_lr, weight_decay=0.0)
     dpo_scaler = torch.cuda.amp.GradScaler(enabled=(config.device == "cuda"))
 
-    if env_bool("RESUME", False) and resume_stage == "dpo" and dpo_last_path.exists():
-        state = load_state(dpo_last_path)
-        policy_model.model.load_state_dict(state["policy_state_dict"])
-        ref_model.model.load_state_dict(state["reference_state_dict"])
-        dpo_optimizer.load_state_dict(state["optimizer_state_dict"])
-        dpo_scaler.load_state_dict(state["scaler_state_dict"])
+    if resume_stage == "dpo" and resume_dpo_state is not None:
+        policy_model.model.load_state_dict(resume_dpo_state["policy_state_dict"])
+        ref_model.model.load_state_dict(resume_dpo_state["reference_state_dict"])
+        dpo_optimizer.load_state_dict(resume_dpo_state["optimizer_state_dict"])
+        dpo_scaler.load_state_dict(resume_dpo_state["scaler_state_dict"])
 
     print("Starting DPO training...")
     dpo_optimizer.zero_grad(set_to_none=True)
