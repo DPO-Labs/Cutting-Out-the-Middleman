@@ -32,6 +32,18 @@ Run it:
 python3 -c "import sys; sys.path.insert(0, 'src'); import trainer"
 ```
 
+## `run_paraphrase.py`
+
+Brief: low-VRAM QQP paraphrase SFT + DPO script with resumable checkpoints.
+
+Run it:
+
+```bash
+PARAPHRASE_PROFILE=smoke python3 src/run_paraphrase.py
+PARAPHRASE_PROFILE=rtx3050 python3 src/run_paraphrase.py
+PARAPHRASE_PROFILE=rtx3050 RESUME=1 python3 src/run_paraphrase.py
+```
+
 ## Notes
 
 - The modules are meant to be imported from notebooks or scripts.
