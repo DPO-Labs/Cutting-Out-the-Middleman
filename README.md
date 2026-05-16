@@ -45,6 +45,22 @@ PARAPHRASE_PROFILE=full RUN_TEST_PREDICTIONS=1 python3 src/run_paraphrase.py
 PARAPHRASE_PROFILE=rtx3050 RUN_BETA_ABLATION=1 RUN_ERROR_ANALYSIS=1 python3 src/run_paraphrase.py
 ```
 
+### Visualize smoke vs full checkpoint results
+
+If you have separate checkpoint folders for smoke and full runs, generate comparison plots and findings with:
+
+```bash
+python3 src/visualize_paraphrase_runs.py \
+  --smoke-dir checkpoints/paraphrase_smoke \
+  --full-dir checkpoints/paraphrase_full \
+  --output-dir Report/paraphrase_visualization
+```
+
+Generated outputs:
+- `smoke_vs_full_visualization.png` (multi-panel chart)
+- `summary_metrics.csv` (key metrics table)
+- `findings.md` (analysis summary)
+
 ## How to run the example
 
 1. Create and activate a virtual environment.
