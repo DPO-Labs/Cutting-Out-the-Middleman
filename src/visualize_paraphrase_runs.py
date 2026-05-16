@@ -131,7 +131,7 @@ def save_visualizations(runs: List[Dict], output_dir: Path) -> None:
             ax=axes[1, 1],
         )
         axes[1, 1].set_title("Error Confidence Distribution")
-        axes[1, 1].set_xlabel("Confidence |yes_logit - no_logit|")
+        axes[1, 1].set_xlabel("Confidence |yes_logits - no_logits|")
         axes[1, 1].set_ylabel("Density")
     else:
         axes[1, 1].text(0.5, 0.5, "No error_analysis.csv found", ha="center", va="center")
