@@ -17,3 +17,5 @@ huggingface-hub
 fsspec
 ipykernel
 sentencepiece
+fastapi
+uvicorn

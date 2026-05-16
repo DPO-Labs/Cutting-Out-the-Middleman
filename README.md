@@ -81,3 +81,7 @@ source venv/bin/activate.fish
 python -m pip install -r requirements.txt
 jupyter notebook example_usage.ipynb
 ```
+
+```bash
+ .venv-gpu/bin/python -m uvicorn main:app --reload --port 8080
+ ```
