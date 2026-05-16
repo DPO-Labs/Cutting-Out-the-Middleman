@@ -131,7 +131,7 @@ def save_visualizations(runs: List[Dict], output_dir: Path) -> None:
             ax=axes[1, 1],
         )
         axes[1, 1].set_title("Error Confidence Distribution")
-        axes[1, 1].set_xlabel("Confidence |yes_logits - no_logits|")
+        axes[1, 1].set_xlabel("Confidence (abs(yes_logits - no_logits))")
         axes[1, 1].set_ylabel("Density")
     else:
         axes[1, 1].text(0.5, 0.5, "No error_analysis.csv found", ha="center", va="center")
@@ -186,14 +186,16 @@ def save_findings(runs: List[Dict], output_dir: Path) -> None:
     summary_df.to_csv(output_dir / "summary_metrics.csv", index=False)
 
     if len(summary_df) == 2:
-        smoke_row = summary_df.iloc[0]
-        full_row = summary_df.iloc[1]
-        if pd.notna(smoke_row["best_dpo_accuracy"]) and pd.notna(full_row["best_dpo_accuracy"]):
-            delta = full_row["best_dpo_accuracy"] - smoke_row["best_dpo_accuracy"]
+        run_to_row = {row["run"]: row for _, row in summary_df.iterrows()}
+        run_names = list(run_to_row.keys())
+        left_name, right_name = run_names[0], run_names[1]
+        left_row, right_row = run_to_row[left_name], run_to_row[right_name]
+        if pd.notna(left_row["best_dpo_accuracy"]) and pd.notna(right_row["best_dpo_accuracy"]):
+            delta = right_row["best_dpo_accuracy"] - left_row["best_dpo_accuracy"]
             lines.extend(
                 [
                     "## Cross-run comparison",
-                    f"- DPO best accuracy difference ({full_row['run']} - {smoke_row['run']}): `{delta:+.4f}`",
+                    f"- DPO best accuracy difference ({right_name} - {left_name}): `{delta:+.4f}`",
                     "",
                 ]
             )
