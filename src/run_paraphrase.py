@@ -70,7 +70,7 @@ class Config:
 
 
 def build_config() -> Config:
-    profile = os.getenv("PARAPHRASE_PROFILE", "smoke").strip().lower()
+    profile = os.getenv("PARAPHRASE_PROFILE", "full").strip().lower()
 
     defaults = {
         "smoke": {
@@ -111,8 +111,8 @@ def build_config() -> Config:
             "grad_accum_steps": 16,
             "sft_lr": 5e-6,
             "dpo_lr": 1e-6,
-            "sft_epochs": 2,
-            "dpo_epochs": 1,
+            "sft_epochs": 2,   # Default to 2 SFT epochs
+            "dpo_epochs": 1,   # Default to 1 DPO epoch
             "beta": 0.1,
             "train_subset": None,
             "trainable_last_n_layers": 4,

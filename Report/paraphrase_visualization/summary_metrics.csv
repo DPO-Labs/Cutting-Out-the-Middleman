@@ -1,0 +1,3 @@
+run,checkpoint_dir,sft_epochs_recorded,dpo_epochs_recorded,best_sft_accuracy,best_dpo_accuracy,dpo_minus_sft,error_count,high_confidence_errors_ge_3
+smoke,checkpoints\paraphrase_smoke,1,1,0.5832302745486025,0.5923076923076923,0.009077417759089768,0,0
+full,checkpoints\paraphrase_full,2,1,0.6320059361860005,0.6318327974276527,-0.00017313875834779058,0,0
